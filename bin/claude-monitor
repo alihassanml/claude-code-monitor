@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+#
+# Small control CLI for the Claude Code Monitor dashboard.
+# Available as a bare `claude-monitor` command while the plugin is enabled.
+
+set -uo pipefail
+
+APP_ID="claude-code-monitor"
+PORT="${CLAUDE_MONITOR_PORT:-8787}"
+URL="http://127.0.0.1:${PORT}"
+
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SELF_DIR/.." && pwd)}"
+DATA="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data/${APP_ID}}"
+LOG="$DATA/server.log"
+
+health() {
+  curl -fsS --max-time 2 "$URL/api/health" 2>/dev/null | grep -q "\"app\":\"${APP_ID}\""
+}
+
+case "${1:-status}" in
+  status)
+    if health; then
+      echo "running   $URL"
+      # Program passed with -c because stdin is already carrying the JSON.
+      # Only double quotes inside, so the single-quoted shell string is safe.
+      curl -fsS --max-time 3 "$URL/api/summary" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+t = d.get("today", {}); a = d.get("auth", {}); s = d.get("stats", {})
+print("billing   {} ({})".format(a.get("label", "?"), a.get("billing", "?")))
+print("today     {:,} tokens | ${:.2f} | {} prompts | {} failures".format(
+    t.get("total_tokens", 0), t.get("cost_usd", 0.0),
+    t.get("prompts", 0), t.get("failures", 0)))
+print("store     {:,} sessions | {:,} API calls".format(
+    s.get("sessions", 0), s.get("messages", 0)))
+for w in a.get("warnings", []):
+    print("warning   {}".format(w.get("title", "")))
+' 2>/dev/null
+    else
+      echo "not running (port $PORT)"
+      echo "start it with: claude-monitor start"
+    fi
+    ;;
+
+  start)
+    if health; then
+      echo "already running  $URL"
+    else
+      "$ROOT/scripts/ensure-running.sh"
+      printf 'starting'
+      for _ in $(seq 1 40); do
+        sleep 0.5
+        printf '.'
+        if health; then echo " ready  $URL"; exit 0; fi
+      done
+      echo " timed out — check: claude-monitor logs"
+    fi
+    ;;
+
+  stop)
+    # Match the uvicorn invocation this plugin starts, nothing else.
+    if pkill -f "uvicorn main:app --host 127.0.0.1 --port ${PORT}" 2>/dev/null; then
+      echo "stopped"
+    else
+      echo "nothing to stop on port $PORT"
+    fi
+    ;;
+
+  restart)
+    "$0" stop >/dev/null 2>&1
+    sleep 1
+    "$0" start
+    ;;
+
+  sync)
+    if health; then
+      curl -fsS -X POST "$URL/api/ingest" 2>/dev/null | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+print("ingested {} API calls, {} prompts, {} tool calls".format(
+    d.get("messages", 0), d.get("prompts", 0), d.get("tool_calls", 0)))
+' 2>/dev/null
+    else
+      echo "not running - start it first"
+    fi
+    ;;
+
+  open)
+    health || { echo "not running — start it first"; exit 0; }
+    if command -v open >/dev/null 2>&1; then open "$URL"
+    elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL"
+    else echo "$URL"
+    fi
+    ;;
+
+  logs)
+    [ -f "$LOG" ] && tail -n "${2:-40}" "$LOG" || echo "no log at $LOG"
+    ;;
+
+  where)
+    echo "plugin   $ROOT"
+    echo "data     $DATA"
+    echo "database ${CLAUDE_DASHBOARD_DB:-$DATA/claude_dashboard.db}"
+    echo "log      $LOG"
+    ;;
+
+  *)
+    cat <<EOF
+claude-monitor — Claude Code usage dashboard
+
+  status     show whether the dashboard is running, plus today's totals (default)
+  start      start it if it isn't running
+  stop       stop it
+  restart    stop, then start
+  sync       re-read transcripts now
+  open       open the dashboard in your browser
+  logs [n]   tail the server log (default 40 lines)
+  where      print plugin, data, database and log paths
+
+Dashboard: $URL
+EOF
+    ;;
+esac

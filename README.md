@@ -11,7 +11,8 @@ from the JSONL transcripts Claude Code already writes to your disk.
 [![SQLite](https://img.shields.io/badge/SQLite-stdlib-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![Chart.js](https://img.shields.io/badge/Chart.js-4.4-FF6384?logo=chartdotjs&logoColor=white)](https://www.chartjs.org/)
 [![Local first](https://img.shields.io/badge/data-100%25%20local-2ea44f)](#privacy)
-[![No build step](https://img.shields.io/badge/build%20step-none-8957e5)](#quick-start)
+[![No build step](https://img.shields.io/badge/build%20step-none-8957e5)](#quick-start-manual-without-the-plugin)
+[![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-d97757)](#install-as-a-claude-code-plugin-recommended)
 
 </div>
 
@@ -35,6 +36,7 @@ those transcripts into SQLite and puts a fast, local UI on top. Nothing leaves y
 
 ## Features
 
+- 🔌 **Installs as a Claude Code plugin** — auto-starts on session start, no manual `uvicorn`, no `settings.json` editing
 - 📊 **Token usage analytics** — input, output, cache-read and cache-write tokens, per day, per model, per project
 - 💰 **Cost tracking** — an editable per-model pricing table with correct cache-read (×0.1) and cache-write (×1.25 / ×2.0) multipliers
 - 🧾 **Billing mode detection** — tells you whether you're on a **Claude Pro/Max subscription**, an **API key**, a **gateway**, or **Bedrock/Vertex**, and warns when a stale API key is silently overriding your plan
@@ -68,7 +70,48 @@ those transcripts into SQLite and puts a fast, local UI on top. Nothing leaves y
 
 </details>
 
-## Quick start
+## Install as a Claude Code plugin (recommended)
+
+The repo ships as a Claude Code plugin, so there is nothing to clone, install, or launch —
+the dashboard starts itself whenever a Claude Code session begins.
+
+```
+/plugin marketplace add alihassanml/claude-code-monitor
+/plugin install claude-code-monitor@alihassanml
+```
+
+On the next session start, the plugin creates its own virtualenv, installs dependencies,
+backfills your transcript history, and starts the server on **<http://localhost:8787>**.
+First run takes ~30 s in the background; the session itself is never blocked. After that,
+startup is a single health check (~30 ms).
+
+Hooks for the live feed are registered automatically — no editing `settings.json`.
+
+**Control it from any Bash tool call** (the `bin/` directory is on `PATH` while the plugin
+is enabled):
+
+```bash
+claude-monitor status     # running? plus today's tokens, cost and billing mode
+claude-monitor open       # open the dashboard in your browser
+claude-monitor sync       # re-read transcripts now
+claude-monitor logs       # tail the server log
+claude-monitor stop|start|restart|where
+```
+
+| Plugin detail | Value |
+|---|---|
+| Port | `8787` (override with `CLAUDE_MONITOR_PORT`, and update the URLs in `hooks/hooks.json`) |
+| Virtualenv + database | `${CLAUDE_PLUGIN_DATA}` (`~/.claude/plugins/data/…`) — **survives plugin updates** |
+| Log | `${CLAUDE_PLUGIN_DATA}/server.log` |
+| Python | 3.10+ must exist on `PATH`; the plugin does the rest |
+
+The start script is deliberately defensive: it always exits 0 so a failure can never break a
+session, it detaches all slow work so session start isn't delayed, it uses an atomic lock so
+ten simultaneous sessions produce exactly one server, and it verifies `/api/health` returns
+this app's identifier rather than adopting any process that happens to hold the port.
+Dependencies are reinstalled automatically when a plugin update changes `requirements.txt`.
+
+## Quick start (manual, without the plugin)
 
 **Requirements:** Python 3.10+ and an existing Claude Code install (so there are transcripts to read).
 
@@ -178,6 +221,8 @@ are cached for 30 s.
 | `/failures` | Failure rate per tool, bar chart, and the full failure log with error text |
 | `/analytics` | Stacked cost by day & model, activity by hour, token mix, cost by project, billing mode, pricing table |
 
+The plugin serves these on port **8787**; a manual `uvicorn` run defaults to **8000**.
+
 **JSON API** — every page is backed by a documented endpoint:
 
 ```
@@ -187,6 +232,7 @@ GET  /api/usage/cost?days=30      cost by day×model, by model, by project
 GET  /api/usage/hourly?days=30    API calls bucketed by local hour
 GET  /api/tools                   tool usage and failure counts
 GET  /api/auth                    billing mode + warnings
+GET  /api/health                  liveness probe with app identifier
 GET  /api/sessions                session list with rollups
 GET  /api/sessions/{id}           one session + its full timeline
 POST /api/ingest[?rebuild=true]   run the incremental parser
@@ -194,11 +240,18 @@ POST /api/ingest[?rebuild=true]   run the incremental parser
 
 ## Live updates via hooks
 
+**Installed as a plugin, this is already done** — [`hooks/hooks.json`](hooks/hooks.json) is
+registered automatically. This section is for manual installs.
+
 Start the dashboard first, then merge the `hooks` block from
 [`hooks/settings.json`](hooks/settings.json) into `~/.claude/settings.json` (or a
 project-level `.claude/settings.json`). Claude Code POSTs each event to the dashboard, which
 stores it, pushes it to any open browser over `/ws`, and re-runs the incremental ingest on
 `Stop` / `SessionEnd`.
+
+> The two files are different formats on purpose: `hooks/hooks.json` is the plugin hook
+> format (port 8787), `hooks/settings.json` is a `settings.json` fragment for manual setup
+> (port 8000).
 
 Endpoints accept either kebab-case URLs or raw event names:
 `/hooks/post-tool-use`, `/hooks/post-tool-use-failure`, `/hooks/user-prompt-submit`,
@@ -308,7 +361,11 @@ switch rather than being hardcoded.
 ├── templates/           base, dashboard, sessions, session_detail, failures, analytics
 ├── static/              style.css, charts.js
 ├── docs/                screenshots
-└── hooks/settings.json  hook config to merge into ~/.claude/settings.json
+├── .claude-plugin/      plugin.json + marketplace.json (Claude Code plugin)
+├── hooks/hooks.json     plugin hooks (auto-registered)
+├── hooks/settings.json  settings fragment for manual installs
+├── scripts/             ensure-running.sh — SessionStart auto-start
+└── bin/claude-monitor   control CLI, on PATH while the plugin is enabled
 ```
 
 ## Roadmap

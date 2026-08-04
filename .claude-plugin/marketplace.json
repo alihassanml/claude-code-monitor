@@ -1,0 +1,17 @@
+{
+  "name": "alihassanml",
+  "description": "Developer tooling for Claude Code",
+  "owner": {
+    "name": "alihassanml",
+    "url": "https://github.com/alihassanml"
+  },
+  "plugins": [
+    {
+      "name": "claude-code-monitor",
+      "source": "./",
+      "description": "Local usage, cost and failure dashboard for Claude Code. Auto-starts on session start; open http://localhost:8787",
+      "category": "monitoring",
+      "tags": ["usage", "cost", "tokens", "analytics", "observability"]
+    }
+  ]
+}

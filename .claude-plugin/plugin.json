@@ -1,0 +1,22 @@
+{
+  "name": "claude-code-monitor",
+  "displayName": "Claude Code Monitor",
+  "version": "1.0.0",
+  "description": "Local usage, cost and failure dashboard for Claude Code. Auto-starts on session start; open http://localhost:8787",
+  "author": {
+    "name": "alihassanml",
+    "url": "https://github.com/alihassanml"
+  },
+  "homepage": "https://github.com/alihassanml/claude-code-monitor",
+  "repository": "https://github.com/alihassanml/claude-code-monitor",
+  "keywords": [
+    "usage",
+    "cost",
+    "tokens",
+    "analytics",
+    "observability",
+    "dashboard",
+    "monitoring"
+  ],
+  "hooks": "./hooks/hooks.json"
+}

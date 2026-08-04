@@ -24,7 +24,10 @@ import pricing
 
 BASE_DIR = Path(__file__).parent
 
-app = FastAPI(title="Claude Code Observability Dashboard")
+APP_ID = "claude-code-monitor"
+APP_VERSION = "1.0.0"
+
+app = FastAPI(title="Claude Code Observability Dashboard", version=APP_VERSION)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
@@ -310,6 +313,17 @@ def api_summary():
 def api_auth(refresh: bool = False):
     """How Claude Code is authenticated, and therefore how it's billed."""
     return auth_mode.detect(refresh=refresh)
+
+
+@app.get("/api/health")
+def api_health():
+    """Liveness probe with an app identifier.
+
+    The plugin's start script uses this to tell *this* server apart from
+    whatever else might be listening on the port — a bare port check would
+    happily accept someone else's dev server and then POST hooks at it.
+    """
+    return {"app": APP_ID, "version": APP_VERSION, "status": "ok"}
 
 
 @app.get("/api/sessions")
