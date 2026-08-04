@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Sessions · Claude Code{% endblock %}
+{% block heading %}Sessions{% endblock %}
+{% block subheading %}{{ total | fmt_int }} total{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <form class="filters" method="get" action="/sessions">
+    <input type="search" name="q" value="{{ query }}" placeholder="Search title, id or path…">
+    <select name="project">
+      <option value="">All projects</option>
+      {% for p in projects %}
+      <option value="{{ p.project }}" {{ 'selected' if p.project == current_project }}>
+        {{ p.project }} ({{ p.sessions }})
+      </option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Filter</button>
+    {% if query or current_project %}<a class="btn btn-ghost" href="/sessions">Reset</a>{% endif %}
+  </form>
+
+  <div class="table-scroll">
+    <table class="table table-fixed t-sessions">
+      <thead>
+        <tr>
+          <th class="c-title">Session</th><th class="c-proj">Project</th><th class="c-branch">Branch</th>
+          <th class="num c-n">Prompts</th><th class="num c-n">API calls</th>
+          <th class="num c-n">Tools</th><th class="num c-n">Fails</th>
+          <th class="num c-n">Tokens</th><th class="num c-n">Cost</th><th class="num c-when">Last active</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in sessions %}
+        <tr>
+          <td>
+            <div class="cell-clamp"><a class="link" href="/sessions/{{ s.session_id }}">{{ s.title or s.session_id[:12] }}</a></div>
+            <div class="muted tiny mono cell-clamp">{{ s.session_id }}</div>
+          </td>
+          <td><div class="cell-clamp">{{ s.project or '—' }}</div></td>
+          <td class="muted mono tiny"><div class="cell-clamp">{{ s.git_branch or '—' }}</div></td>
+          <td class="num">{{ s.prompts | fmt_int }}</td>
+          <td class="num">{{ s.api_calls | fmt_int }}</td>
+          <td class="num">{{ s.tool_calls | fmt_int }}</td>
+          <td class="num"><span class="pill-count {{ 'is-bad' if s.failures }}">{{ s.failures | fmt_int }}</span></td>
+          <td class="num">{{ s.total_tokens | fmt_tokens }}</td>
+          <td class="num strong">{{ s.cost_usd | fmt_usd }}</td>
+          <td class="num muted nowrap tiny">{{ s.last_ts | fmt_ts }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10" class="empty">No sessions matched.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <div class="pager">
+    {% set qs = '&q=' ~ query if query else '' %}
+    {% set ps = '&project=' ~ current_project if current_project else '' %}
+    {% if page_num > 1 %}<a class="btn btn-ghost" href="?page={{ page_num - 1 }}{{ qs }}{{ ps }}">← Prev</a>{% endif %}
+    <span class="muted">Page {{ page_num }} of {{ pages }}</span>
+    {% if page_num < pages %}<a class="btn btn-ghost" href="?page={{ page_num + 1 }}{{ qs }}{{ ps }}">Next →</a>{% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

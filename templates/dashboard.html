@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Claude Code{% endblock %}
+{% block heading %}Dashboard{% endblock %}
+{% block subheading %}{{ today }} · local time{% endblock %}
+
+{% block content %}
+<section class="cards">
+  <div class="card">
+    <div class="card-label">Tokens today</div>
+    <div class="card-value">{{ today_summary.total_tokens | fmt_tokens }}</div>
+    <div class="card-sub">{{ all_summary.total_tokens | fmt_tokens }} all time</div>
+  </div>
+  <div class="card">
+    <div class="card-label">{{ 'Value today' if auth.is_subscription else 'Cost today' }}</div>
+    <div class="card-value">{{ today_summary.cost_usd | fmt_usd }}</div>
+    <div class="card-sub">{{ all_summary.cost_usd | fmt_usd }} all time · {{ cost_caption }}</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Prompts today</div>
+    <div class="card-value">{{ today_summary.prompts | fmt_int }}</div>
+    <div class="card-sub">{{ today_summary.api_calls | fmt_int }} API calls</div>
+  </div>
+  <div class="card">
+    <div class="card-label">Sessions today</div>
+    <div class="card-value">{{ today_summary.sessions | fmt_int }}</div>
+    <div class="card-sub">{{ all_summary.sessions | fmt_int }} all time</div>
+  </div>
+  <div class="card {{ 'card-warn' if today_summary.failures }}">
+    <div class="card-label">Tool failures today</div>
+    <div class="card-value">{{ today_summary.failures | fmt_int }}</div>
+    <div class="card-sub">of {{ today_summary.tool_calls | fmt_int }} tool calls</div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Usage over time</h2>
+    <div class="seg" id="range-seg">
+      <button data-days="7">7d</button>
+      <button data-days="30" class="on">30d</button>
+      <button data-days="90">90d</button>
+    </div>
+  </div>
+  <div class="chart-row">
+    <div class="chart-box"><canvas id="tokensChart"></canvas></div>
+    <div class="chart-box"><canvas id="costChart"></canvas></div>
+  </div>
+</section>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-head"><h2>Live activity</h2><span class="muted small">via hooks</span></div>
+    <ul class="feed" id="live-feed">
+      {% for e in live_events %}
+      <li class="{{ 'err' if e.is_error }}">
+        <span class="feed-ts">{{ e.ts | fmt_ts(False) }}</span>
+        <span class="tag">{{ e.event_type }}</span>
+        <span class="feed-text">{{ e.summary }}</span>
+      </li>
+      {% else %}
+      <li class="empty">No hook events yet — see the README to wire up HTTP hooks.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Cost by model</h2><span class="muted small">last 30 days</span></div>
+    <div class="table-scroll">
+      <table class="table">
+        <thead><tr><th>Model</th><th class="num">Calls</th><th class="num">Tokens</th><th class="num">Cost</th></tr></thead>
+        <tbody>
+        {% for m in model_costs %}
+          <tr>
+            <td class="col-tight"><code>{{ m.model }}</code></td>
+            <td class="num muted">{{ m.api_calls | fmt_int }}</td>
+            <td class="num">{{ (m.input_tokens + m.output_tokens + m.cache_read_tokens + m.cache_creation_tokens) | fmt_tokens }}</td>
+            <td class="num strong">{{ m.cost_usd | fmt_usd }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="empty">No data — click “Sync transcripts”.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-head"><h2>Recent sessions</h2><a class="link" href="/sessions">All sessions →</a></div>
+    <div class="table-scroll">
+      <table class="table table-fixed t-recent">
+        <thead><tr>
+          <th class="c-title">Session</th>
+          <th class="num c-tok">Tokens</th><th class="num c-cost">Cost</th>
+          <th class="num c-when">Active</th>
+        </tr></thead>
+        <tbody>
+        {% for s in recent_sessions %}
+          <tr>
+            <td>
+              <div class="cell-clamp"><a class="link" href="/sessions/{{ s.session_id }}">{{ s.title or s.session_id[:8] }}</a></div>
+              <div class="cell-clamp muted tiny">{{ s.project or '—' }}</div>
+            </td>
+            <td class="num">{{ s.total_tokens | fmt_tokens }}</td>
+            <td class="num strong">{{ s.cost_usd | fmt_usd }}</td>
+            <td class="num muted nowrap tiny">{{ s.last_ts | fmt_ago }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="empty">No sessions ingested yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Top tools</h2><a class="link" href="/failures">Failures →</a></div>
+    <div class="table-scroll">
+      <table class="table table-fixed t-tools">
+        <thead><tr><th class="c-tool">Tool</th><th class="num c-num">Calls</th><th class="num c-num">Failures</th></tr></thead>
+        <tbody>
+        {% for t in tools %}
+          <tr>
+            <td class="col-tight"><code>{{ t.name or 'unknown' }}</code></td>
+            <td class="num">{{ t.calls | fmt_int }}</td>
+            <td class="num"><span class="pill-count {{ 'is-bad' if t.failures }}">{{ t.failures | fmt_int }}</span></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="3" class="empty">No tool calls recorded.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

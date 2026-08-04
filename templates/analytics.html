@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Analytics · Claude Code{% endblock %}
+{% block heading %}Analytics{% endblock %}
+{% block subheading %}last {{ days }} days{% endblock %}
+
+{% block content %}
+{% if unknown_models %}
+<div class="notice">
+  No pricing entry for: {% for m in unknown_models %}<code>{{ m }}</code> {% endfor %}
+  — billed at the Sonnet-tier default. Add them to <code>pricing.py</code>.
+</div>
+{% endif %}
+
+<section class="panel">
+  <div class="panel-head"><h2>Cost by day &amp; model</h2></div>
+  <div class="chart-box tall"><canvas id="stackedCostChart"></canvas></div>
+</section>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-head"><h2>Activity by hour</h2><span class="muted small">local time</span></div>
+    <div class="chart-box"><canvas id="hourlyChart"></canvas></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Token mix</h2><span class="muted small">last {{ days }} days</span></div>
+    <div class="chart-box"><canvas id="tokenMixChart"></canvas></div>
+  </section>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-head"><h2>Cost by project</h2></div>
+    <div class="table-scroll">
+      <table class="table">
+      <thead><tr><th>Project</th><th class="num">Sessions</th><th class="num">Tokens</th><th class="num">Cost</th></tr></thead>
+      <tbody>
+      {% for p in project_costs %}
+        <tr>
+          <td><a class="link" href="/sessions?project={{ p.project }}">{{ p.project }}</a></td>
+          <td class="num">{{ p.sessions | fmt_int }}</td>
+          <td class="num">{{ p.total_tokens | fmt_tokens }}</td>
+          <td class="num strong">{{ p.cost_usd | fmt_usd }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty">No data yet.</td></tr>
+      {% endfor %}
+      </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Cost by model</h2></div>
+    <div class="table-scroll">
+      <table class="table">
+      <thead><tr><th>Model</th><th class="num">Calls</th><th class="num">In</th><th class="num">Out</th><th class="num">Cost</th></tr></thead>
+      <tbody>
+      {% for m in model_costs %}
+        <tr>
+          <td class="col-tight"><code>{{ m.model }}</code></td>
+          <td class="num">{{ m.api_calls | fmt_int }}</td>
+          <td class="num">{{ m.input_tokens | fmt_tokens }}</td>
+          <td class="num">{{ m.output_tokens | fmt_tokens }}</td>
+          <td class="num strong">{{ m.cost_usd | fmt_usd }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty">No data yet.</td></tr>
+      {% endfor %}
+      </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<section class="panel" id="billing">
+  <div class="panel-head">
+    <h2>Billing mode</h2>
+    <span class="billing-badge mode-{{ auth.mode }} static">
+      <span class="bb-label">{{ auth.label }}</span>
+      <span class="bb-sep"></span><span class="bb-billing">{{ auth.billing }}</span>
+    </span>
+  </div>
+  <p class="muted small billing-detail">{{ auth.detail }}</p>
+  <dl class="kv">
+    {% if auth.account %}
+      <dt>Plan</dt><dd>{{ auth.account.plan }}{% if auth.account.billing_type %}
+        <span class="muted tiny">· {{ auth.account.billing_type.replace('_', ' ') }}</span>{% endif %}</dd>
+      <dt>Organization</dt><dd>{{ auth.account.organization_name or '—' }}</dd>
+      {% if auth.account.subscription_started %}
+      <dt>Subscribed</dt><dd>{{ auth.account.subscription_started | fmt_ts }}</dd>
+      {% endif %}
+      {% if auth.account.trial_ends %}
+      <dt>Trial ends</dt><dd>{{ auth.account.trial_ends | fmt_ts }}</dd>
+      {% endif %}
+      <dt>Extra usage</dt><dd>{{ 'enabled' if auth.account.extra_usage_enabled else 'disabled' }}</dd>
+    {% endif %}
+    <dt>Credential</dt>
+    <dd>
+      {% if auth.signals.env %}
+        {% for v in auth.signals.env %}<code>{{ v }}</code> {% endfor %}
+        <span class="muted tiny">(environment)</span>
+      {% elif auth.signals.stored_login %}
+        stored login <span class="muted tiny">(keychain or ~/.claude/.credentials.json)</span>
+      {% else %}
+        <span class="muted">none found</span>
+      {% endif %}
+    </dd>
+    {% if auth.signals.settings_env %}
+    <dt>settings.json env</dt>
+    <dd>{% for v in auth.signals.settings_env %}<code>{{ v }}</code> {% endfor %}</dd>
+    {% endif %}
+    {% if auth.signals.shell_profiles %}
+    <dt>Shell profiles</dt>
+    <dd>{% for p in auth.signals.shell_profiles %}
+      <code>{{ p.var }}</code> <span class="muted tiny">in {{ p.file }}:{{ p.line }}</span><br>
+    {% endfor %}</dd>
+    {% endif %}
+    <dt>Cost figures</dt><dd>{{ cost_caption }}</dd>
+  </dl>
+  <p class="muted tiny billing-note">
+    Detected from this machine — environment variables, <code>~/.claude/settings.json</code>,
+    shell profiles, and the <code>oauthAccount</code> block in <code>~/.claude.json</code>.
+    Credential values are never read. If Claude Code runs in a different shell, its
+    environment may differ from the dashboard's.
+  </p>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h2>Pricing table in use</h2><span class="muted small">USD per 1M tokens · edit <code>pricing.py</code></span></div>
+  <div class="table-scroll">
+    <table class="table">
+      <thead><tr><th>Model</th><th class="num">Input</th><th class="num">Output</th><th class="num">Cache read</th><th class="num">Cache write 5m</th><th class="num">Cache write 1h</th></tr></thead>
+      <tbody>
+      {% for r in pricing_rows %}
+        <tr>
+          <td class="col-tight"><code>{{ r.model }}</code></td>
+          <td class="num">${{ '%.2f' % r.input }}</td>
+          <td class="num">${{ '%.2f' % r.output }}</td>
+          <td class="num muted">${{ '%.3f' % r.cache_read }}</td>
+          <td class="num muted">${{ '%.3f' % r.cache_write_5m }}</td>
+          <td class="num muted">${{ '%.3f' % r.cache_write_1h }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h2>Store</h2></div>
+  <dl class="kv">
+    <dt>Database</dt><dd class="mono tiny">{{ stats.db_path }} ({{ (stats.db_size_bytes / 1048576) | round(1) }} MB)</dd>
+    <dt>Rows</dt><dd>{{ stats.sessions | fmt_int }} sessions · {{ stats.messages | fmt_int }} API calls ·
+      {{ stats.prompts | fmt_int }} prompts · {{ stats.tool_calls | fmt_int }} tool calls ·
+      {{ stats.hook_events | fmt_int }} hook events</dd>
+    <dt>Transcripts</dt><dd>{{ stats.files_ingested | fmt_int }} files · last sync {{ stats.last_ingest | fmt_ts }}</dd>
+  </dl>
+</section>
+{% endblock %}

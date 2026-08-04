@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Not found · Claude Code{% endblock %}
+{% block heading %}Session not found{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <p>No session with id <code>{{ session_id }}</code> is in the database.</p>
+  <p class="muted">If the session is new, click <strong>Sync transcripts</strong> in the sidebar and try again.</p>
+  <p><a class="btn" href="/sessions">Back to sessions</a></p>
+</section>
+{% endblock %}

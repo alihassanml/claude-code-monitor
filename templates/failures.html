@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Failures · Claude Code{% endblock %}
+{% block heading %}Tool failures{% endblock %}
+{% block subheading %}{{ failures | length }} most recent{% if current_tool %} · filtered to <code>{{ current_tool }}</code>{% endif %}{% endblock %}
+
+{% block content %}
+<div class="grid-2 stretch">
+  <section class="panel panel-fill">
+    <div class="panel-head"><h2>Failures by tool</h2></div>
+    <div class="chart-box"><canvas id="failuresChart"></canvas></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Failure rate</h2><span class="muted small">all time</span></div>
+    <div class="table-scroll">
+      <table class="table">
+        <thead><tr><th>Tool</th><th class="num">Failures</th><th class="num">Calls</th><th class="num">Rate</th></tr></thead>
+        <tbody>
+        {% for t in by_tool %}
+          <tr>
+            <td class="col-tight"><a class="link" href="/failures?tool={{ t.name }}"><code>{{ t.name or 'unknown' }}</code></a></td>
+            <td class="num"><span class="pill-count is-bad">{{ t.failures | fmt_int }}</span></td>
+            <td class="num muted">{{ t.total | fmt_int }}</td>
+            <td class="num strong">{{ t.failure_rate }}%</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="empty">No failures recorded.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Failure log</h2>
+    <div class="panel-head-actions">
+      <span class="muted small">click a row to expand</span>
+      {% if current_tool %}<a class="btn btn-ghost" href="/failures">Show all tools</a>{% endif %}
+    </div>
+  </div>
+  <div class="table-scroll">
+    <table class="table fail-table">
+      <thead>
+        <tr>
+          <th class="col-when">When</th>
+          <th class="col-tool">Tool</th>
+          <th class="col-proj">Project</th>
+          <th class="col-in">Input</th>
+          <th class="col-err">Error</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for f in failures %}
+        <tr class="fail-row">
+          <td class="muted nowrap tiny">{{ f.ts | fmt_ts }}</td>
+          <td class="col-tight"><code>{{ f.name or 'unknown' }}</code></td>
+          <td><a class="link tiny" href="/sessions/{{ f.session_id }}">{{ f.project or f.session_id[:8] }}</a></td>
+          <td><div class="fail-input">{{ f.input_preview }}</div></td>
+          <td><div class="fail-error">{{ f.error_text }}</div></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty">Nothing here.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

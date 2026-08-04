@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ session.title or session.session_id[:8] }} · Claude Code{% endblock %}
+{% block heading %}{{ session.title or 'Session' }}{% endblock %}
+{% block subheading %}<span class="mono tiny">{{ session.session_id }}</span>{% endblock %}
+
+{% block content %}
+<section class="cards">
+  <div class="card"><div class="card-label">Tokens</div>
+    <div class="card-value">{{ session.total_tokens | fmt_tokens }}</div>
+    <div class="card-sub">{{ session.input_tokens | fmt_tokens }} in · {{ session.output_tokens | fmt_tokens }} out</div></div>
+  <div class="card"><div class="card-label">Cost</div>
+    <div class="card-value">{{ session.cost_usd | fmt_usd }}</div>
+    <div class="card-sub">{{ session.api_calls | fmt_int }} API calls</div></div>
+  <div class="card"><div class="card-label">Cache</div>
+    <div class="card-value">{{ session.cache_read_tokens | fmt_tokens }}</div>
+    <div class="card-sub">{{ session.cache_creation_tokens | fmt_tokens }} written</div></div>
+  <div class="card"><div class="card-label">Prompts</div>
+    <div class="card-value">{{ session.prompts | fmt_int }}</div>
+    <div class="card-sub">{{ session.tool_calls | fmt_int }} tool calls</div></div>
+  <div class="card {{ 'card-warn' if session.failures }}"><div class="card-label">Failures</div>
+    <div class="card-value">{{ session.failures | fmt_int }}</div>
+    <div class="card-sub">{{ session.git_branch or 'no branch' }}</div></div>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Details</h2>
+    <span class="muted small">{{ session.first_ts | fmt_ts }} → {{ session.last_ts | fmt_ts }}</span>
+  </div>
+  <dl class="kv">
+    <dt>Project</dt><dd>{{ session.project or '—' }}</dd>
+    <dt>Working dir</dt><dd class="mono tiny">{{ session.cwd or '—' }}</dd>
+    <dt>Models</dt><dd>{% for m in (session.models or '').split(',') if m %}<code>{{ m }}</code> {% endfor %}</dd>
+    <dt>Resume</dt><dd class="mono tiny">claude --resume {{ session.session_id }}</dd>
+  </dl>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Timeline</h2>
+    <div class="seg" id="timeline-filter">
+      <button data-kind="all" class="on">All</button>
+      <button data-kind="prompt">Prompts</button>
+      <button data-kind="message">API calls</button>
+      <button data-kind="tool">Tools</button>
+      <button data-kind="error">Errors</button>
+    </div>
+  </div>
+  <ol class="timeline">
+    {% for e in timeline %}
+      {% if e.kind == 'prompt' %}
+      <li class="tl tl-prompt" data-kind="prompt">
+        <span class="tl-ts">{{ e.ts | fmt_ts(False) }}</span>
+        <span class="tl-badge b-prompt">prompt</span>
+        <div class="tl-body"><pre class="prompt-text">{{ e.text[:2000] }}</pre></div>
+      </li>
+      {% elif e.kind == 'message' %}
+      <li class="tl tl-msg" data-kind="message">
+        <span class="tl-ts">{{ e.ts | fmt_ts(False) }}</span>
+        <span class="tl-badge b-msg">{{ e.model or 'model' }}</span>
+        <div class="tl-body">
+          <span class="chip">in {{ e.input_tokens | fmt_int }}</span>
+          <span class="chip">out {{ e.output_tokens | fmt_int }}</span>
+          <span class="chip">cache r {{ e.cache_read_tokens | fmt_tokens }}</span>
+          <span class="chip">cache w {{ e.cache_creation_tokens | fmt_tokens }}</span>
+          <span class="chip cost">{{ e.cost_usd | fmt_usd }}</span>
+          {% if e.effort %}<span class="chip">effort {{ e.effort }}</span>{% endif %}
+          {% if e.stop_reason %}<span class="chip muted">{{ e.stop_reason }}</span>{% endif %}
+        </div>
+      </li>
+      {% else %}
+      <li class="tl tl-tool {{ 'is-error' if e.is_error }}" data-kind="{{ 'error' if e.is_error else 'tool' }}">
+        <span class="tl-ts">{{ e.ts | fmt_ts(False) }}</span>
+        <span class="tl-badge {{ 'b-err' if e.is_error else 'b-tool' }}">{{ e.name or 'tool' }}</span>
+        <div class="tl-body">
+          <code class="tool-input">{{ e.input_preview }}</code>
+          {% if e.duration_ms %}<span class="chip muted">{{ e.duration_ms | fmt_duration }}</span>{% endif %}
+          {% if e.is_error %}<div class="err-text">{{ e.error_text }}</div>{% endif %}
+        </div>
+      </li>
+      {% endif %}
+    {% else %}
+      <li class="empty">Nothing recorded for this session.</li>
+    {% endfor %}
+  </ol>
+</section>
+{% endblock %}

@@ -1,0 +1,49 @@
+{
+  "_comment": "Merge the \"hooks\" block below into ~/.claude/settings.json (user-wide) or .claude/settings.json (per project). Start the dashboard first — a hook pointing at a dead port just times out and slows Claude Code down.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "http", "url": "http://localhost:8000/hooks/user-prompt-submit", "timeout": 5 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "http", "url": "http://localhost:8000/hooks/post-tool-use", "timeout": 5 }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "http", "url": "http://localhost:8000/hooks/post-tool-use-failure", "timeout": 5 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "http", "url": "http://localhost:8000/hooks/stop", "timeout": 10 }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "http", "url": "http://localhost:8000/hooks/session-start", "timeout": 5 }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          { "type": "http", "url": "http://localhost:8000/hooks/session-end", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}
