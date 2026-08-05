@@ -1,32 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · Claude Code{% endblock %}
 {% block heading %}Dashboard{% endblock %}
-{% block subheading %}{{ today }} · local time{% endblock %}
+{% block subheading %}{{ today }} · local time · synced {{ last_ingest | fmt_ago }}{% endblock %}
 
 {% block content %}
 <section class="cards">
   <div class="card">
-    <div class="card-label">Tokens today</div>
-    <div class="card-value">{{ today_summary.total_tokens | fmt_tokens }}</div>
-    <div class="card-sub">{{ all_summary.total_tokens | fmt_tokens }} all time</div>
-  </div>
-  <div class="card">
     <div class="card-label">{{ 'Value today' if auth.is_subscription else 'Cost today' }}</div>
     <div class="card-value">{{ today_summary.cost_usd | fmt_usd }}</div>
-    <div class="card-sub">{{ all_summary.cost_usd | fmt_usd }} all time · {{ cost_caption }}</div>
+    <div class="card-sub">{{ cost_caption }} · {{ all_summary.cost_usd | fmt_usd }} all time</div>
   </div>
   <div class="card">
-    <div class="card-label">Prompts today</div>
-    <div class="card-value">{{ today_summary.prompts | fmt_int }}</div>
+    <div class="card-label">Tokens</div>
+    <div class="card-value">{{ today_summary.total_tokens | fmt_tokens }}</div>
     <div class="card-sub">{{ today_summary.api_calls | fmt_int }} API calls</div>
   </div>
   <div class="card">
-    <div class="card-label">Sessions today</div>
-    <div class="card-value">{{ today_summary.sessions | fmt_int }}</div>
-    <div class="card-sub">{{ all_summary.sessions | fmt_int }} all time</div>
+    <div class="card-label">Prompts</div>
+    <div class="card-value">{{ today_summary.prompts | fmt_int }}</div>
+    <div class="card-sub">across {{ today_summary.sessions | fmt_int }} session{{ '' if today_summary.sessions == 1 else 's' }}</div>
   </div>
   <div class="card {{ 'card-warn' if today_summary.failures }}">
-    <div class="card-label">Tool failures today</div>
+    <div class="card-label">Failures</div>
     <div class="card-value">{{ today_summary.failures | fmt_int }}</div>
     <div class="card-sub">of {{ today_summary.tool_calls | fmt_int }} tool calls</div>
   </div>
@@ -42,8 +37,14 @@
     </div>
   </div>
   <div class="chart-row">
-    <div class="chart-box"><canvas id="tokensChart"></canvas></div>
-    <div class="chart-box"><canvas id="costChart"></canvas></div>
+    <div>
+      <div class="chart-title">Tokens per day</div>
+      <div class="chart-box"><canvas id="tokensChart"></canvas></div>
+    </div>
+    <div>
+      <div class="chart-title">Cost per day</div>
+      <div class="chart-box"><canvas id="costChart"></canvas></div>
+    </div>
   </div>
 </section>
 
@@ -77,7 +78,7 @@
             <td class="num strong">{{ m.cost_usd | fmt_usd }}</td>
           </tr>
         {% else %}
-          <tr><td colspan="4" class="empty">No data — click “Sync transcripts”.</td></tr>
+          <tr><td colspan="4" class="empty">No data yet — run <code>claude-monitor sync</code>.</td></tr>
         {% endfor %}
         </tbody>
       </table>

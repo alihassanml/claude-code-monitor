@@ -51,11 +51,6 @@
     </nav>
 
     <div class="sidebar-foot">
-      <button id="ingest-btn" class="btn btn-primary btn-block">
-        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 0 5.24 3.83l1.43.46A7 7 0 1 1 8 1v1.5z"/><path d="M8 0l3 2.5L8 5z"/></svg>
-        Sync transcripts
-      </button>
-      <div id="ingest-status" class="ingest-status"></div>
       <div class="foot-row">
         {% if auth %}
         <a class="billing-badge billing-badge-side mode-{{ auth.mode }}" href="/analytics#billing"

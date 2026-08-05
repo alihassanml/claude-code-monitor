@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
+import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -167,8 +169,40 @@ def _startup() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# pages
+# pages — kept current by an incremental ingest on each view
 # --------------------------------------------------------------------------- #
+
+_INGEST_INTERVAL_SECONDS = 10
+_ingest_lock = threading.Lock()
+_last_ingest_at = 0.0
+
+
+def refresh_if_stale() -> None:
+    """Pull in new transcript lines before rendering a page.
+
+    This replaces the old manual "Sync transcripts" button. An incremental pass
+    over ~130 transcripts costs ~20ms when nothing has changed, so running it
+    per page view is cheap and means a browser refresh always shows current
+    data instead of whatever happened to be in the database.
+
+    Throttled so a burst of requests (page + its API calls) ingests once, and
+    guarded by a non-blocking lock so concurrent requests never queue up behind
+    each other. Route handlers are sync, so FastAPI runs them in a threadpool —
+    this never blocks the event loop.
+    """
+    global _last_ingest_at
+    if time.monotonic() - _last_ingest_at < _INGEST_INTERVAL_SECONDS:
+        return
+    if not _ingest_lock.acquire(blocking=False):
+        return                      # another request is already ingesting
+    try:
+        parser.ingest()
+        _last_ingest_at = time.monotonic()
+    except Exception:
+        pass                        # a slightly stale page beats a 500
+    finally:
+        _ingest_lock.release()
+
 
 def _page(request: Request, template: str, **ctx: Any) -> HTMLResponse:
     ctx.setdefault("today", date.today().isoformat())
@@ -178,6 +212,7 @@ def _page(request: Request, template: str, **ctx: Any) -> HTMLResponse:
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request):
+    refresh_if_stale()
     today = date.today().isoformat()
     auth = auth_mode.detect()
     return _page(
@@ -192,6 +227,7 @@ def dashboard(request: Request):
         tools=db.tool_usage(limit=8),
         model_costs=db.cost_by_model(days=30),
         live_events=db.recent_hook_events(limit=25),
+        last_ingest=db.db_stats().get("last_ingest"),
     )
 
 
@@ -202,6 +238,7 @@ def sessions_page(
     project: str | None = None,
     q: str | None = None,
 ):
+    refresh_if_stale()
     per_page = 50
     total = db.count_sessions(project=project, search=q)
     rows = db.list_sessions(
@@ -224,6 +261,7 @@ def sessions_page(
 
 @app.get("/sessions/{session_id}", response_class=HTMLResponse)
 def session_detail(request: Request, session_id: str):
+    refresh_if_stale()
     session = db.get_session(session_id)
     if session is None:
         return templates.TemplateResponse(
@@ -243,6 +281,7 @@ def session_detail(request: Request, session_id: str):
 
 @app.get("/failures", response_class=HTMLResponse)
 def failures_page(request: Request, tool: str | None = None):
+    refresh_if_stale()
     return _page(
         request,
         "failures.html",
@@ -255,6 +294,7 @@ def failures_page(request: Request, tool: str | None = None):
 
 @app.get("/analytics", response_class=HTMLResponse)
 def analytics_page(request: Request, days: int = Query(30, ge=1, le=365)):
+    refresh_if_stale()
     return _page(
         request,
         "analytics.html",

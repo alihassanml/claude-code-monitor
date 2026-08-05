@@ -17,16 +17,21 @@
       text2: v("--text-2", "#aeb6c4"),
       muted: v("--muted", "#737d8d"),
       line: v("--line", "#222933"),
-      surface: v("--surface", "#111419"),
-      accent: v("--accent", "#e0865f"),
-      info: v("--info", "#7fa9f5"),
-      good: v("--good", "#63c78b"),
-      bad: v("--bad", "#f0707c"),
-      warn: v("--warn", "#e6bd63"),
-      neutral: v("--neutral-bar", "#39424f"),
+      surface: v("--surface", "#171716"),
+      accent: v("--accent", "#6fc3ac"),
+      info: v("--info", "#6fc3ac"),
+      good: v("--good", "#6fc3ac"),
+      bad: v("--bad", "#e2685f"),
+      warn: v("--warn", "#d6a05a"),
+      neutral: v("--neutral-bar", "#34342f"),
+      // Sequential ramp — the token chart is one quantity split four ways.
+      ramp: [v("--ramp-1", "#34342f"), v("--ramp-2", "#4c5a53"),
+             v("--ramp-3", "#6d8b80"), v("--ramp-4", "#6fc3ac")],
     };
-    C.series = [C.info, C.accent, C.good, C.warn, C.bad,
-                "#a78bfa", "#4fd1c5", "#f0883e", "#84cc99", "#8fa6c9"];
+    // Cost-by-model is genuinely categorical, so it keeps distinct hues —
+    // but muted ones, anchored on the accent.
+    C.series = [C.accent, "#7f9fc4", C.warn, "#b08ab5", C.bad,
+                "#6d8b80", "#c98f6a", "#8fa6c9", "#5d9c8b", "#a9a08c"];
     return C;
   }
 
@@ -126,16 +131,15 @@
       data: {
         labels,
         datasets: [
-          { label: "Cache read", data: series.map((r) => r.cache_read_tokens), backgroundColor: C.neutral, stack: "t", ...barStyle },
-          { label: "Cache write", data: series.map((r) => r.cache_creation_tokens), backgroundColor: C.good, stack: "t", ...barStyle },
-          { label: "Input", data: series.map((r) => r.input_tokens), backgroundColor: C.info, stack: "t", ...barStyle },
-          { label: "Output", data: series.map((r) => r.output_tokens), backgroundColor: C.accent, stack: "t", ...barStyle },
+          { label: "Cache read", data: series.map((r) => r.cache_read_tokens), backgroundColor: C.ramp[0], stack: "t", ...barStyle },
+          { label: "Cache write", data: series.map((r) => r.cache_creation_tokens), backgroundColor: C.ramp[1], stack: "t", ...barStyle },
+          { label: "Input", data: series.map((r) => r.input_tokens), backgroundColor: C.ramp[2], stack: "t", ...barStyle },
+          { label: "Output", data: series.map((r) => r.output_tokens), backgroundColor: C.ramp[3], stack: "t", ...barStyle },
         ],
       },
       options: baseOptions({
         plugins: {
-          legend: { labels: { color: C.text2, boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", padding: 14, font: { size: 11 } } },
-          title: { display: true, text: "Tokens per day", color: C.muted, font: { size: 11.5, weight: "500" }, align: "start", padding: { bottom: 10 } },
+          legend: { labels: { color: C.muted, boxWidth: 8, boxHeight: 8, usePointStyle: true, pointStyle: "circle", padding: 16, font: { size: 10.5 } } },
           tooltip: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, titleColor: C.text, bodyColor: C.text2, padding: 11, cornerRadius: 8, usePointStyle: true,
                      callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${compact(ctx.parsed.y)}` } },
         },
@@ -150,17 +154,16 @@
         datasets: [{
           label: "Cost",
           data: series.map((r) => r.cost_usd),
-          borderColor: C.good,
-          backgroundColor: withAlpha(C.good, 0.13),
-          fill: true, tension: .34, borderWidth: 2,
+          borderColor: C.accent,
+          backgroundColor: withAlpha(C.accent, 0.10),
+          fill: true, tension: .34, borderWidth: 1.75,
           pointRadius: 0, pointHoverRadius: 4,
-          pointBackgroundColor: C.good, pointBorderColor: C.surface, pointBorderWidth: 2,
+          pointBackgroundColor: C.accent, pointBorderColor: C.surface, pointBorderWidth: 2,
         }],
       },
       options: baseOptions({
         plugins: {
           legend: { display: false },
-          title: { display: true, text: "Cost per day", color: C.muted, font: { size: 11.5, weight: "500" }, align: "start", padding: { bottom: 10 } },
           tooltip: { backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, titleColor: C.text, bodyColor: C.text2, padding: 11, cornerRadius: 8, usePointStyle: true,
                      callbacks: { label: (ctx) => " $" + Number(ctx.parsed.y).toFixed(2) } },
         },
@@ -212,7 +215,7 @@
         labels: ["Cache read", "Cache write", "Input", "Output"],
         datasets: [{
           data: [t.read, t.write, t.input, t.output],
-          backgroundColor: [C.neutral, C.good, C.info, C.accent],
+          backgroundColor: C.ramp,
           borderColor: C.surface, borderWidth: 3, hoverOffset: 6,
         }],
       },
@@ -240,7 +243,7 @@
         datasets: [{
           label: "API calls",
           data: hourly.buckets,
-          backgroundColor: hourly.buckets.map((n) => (n === peak ? C.accent : withAlpha(C.info, 0.75))),
+          backgroundColor: hourly.buckets.map((n) => (n === peak ? C.accent : C.ramp[1])),
           ...barStyle,
         }],
       },
@@ -321,10 +324,6 @@
         let msg;
         try { msg = JSON.parse(evt.data); } catch { return; }
         if (msg.type === "hook" && list) prependEvent(list, msg.event);
-        if (msg.type === "ingest") {
-          const status = document.getElementById("ingest-status");
-          if (status) status.textContent = `synced ${msg.report.messages} calls`;
-        }
       };
 
       ws.onclose = () => {
@@ -396,31 +395,6 @@
       });
     }
 
-    const btn = document.getElementById("ingest-btn");
-    const status = document.getElementById("ingest-status");
-    if (btn) {
-      btn.addEventListener("click", async () => {
-        btn.disabled = true;
-        btn.classList.add("is-busy");
-        if (status) status.textContent = "reading transcripts…";
-        try {
-          const report = await (await fetch("/api/ingest", { method: "POST" })).json();
-          if (status) {
-            status.textContent = report.messages || report.prompts || report.tool_calls
-              ? `+${report.messages} calls · +${report.prompts} prompts · +${report.tool_calls} tools`
-              : "already up to date";
-          }
-          if (report.messages || report.prompts || report.tool_calls) {
-            setTimeout(() => location.reload(), 800);
-          }
-        } catch (err) {
-          if (status) status.textContent = "sync failed";
-        } finally {
-          btn.disabled = false;
-          btn.classList.remove("is-busy");
-        }
-      });
-    }
   }
 
   ready(() => {

@@ -4,66 +4,81 @@
 
 /* --- palette -------------------------------------------------------------- */
 
+/* Warm charcoal base, one cool accent. Panels separate by tone and space —
+   borders are a last resort, not the primary device. */
 :root[data-theme="dark"] {
-  --bg:            #0a0c10;
-  --bg-grad:       radial-gradient(1200px 600px at 78% -12%, #16202e 0%, transparent 62%);
-  --surface:       #111419;
-  --surface-2:     #171b22;
-  --surface-3:     #1e242d;
-  --line:          #222933;
-  --line-soft:     #1a1f27;
-  --line-strong:   #2e3742;
+  --bg:            #0f0f0e;
+  --bg-grad:       none;
+  --surface:       #171716;
+  --surface-2:     #1e1e1c;
+  --surface-3:     #272623;
+  --line:          #242320;
+  --line-soft:     #1c1c1a;
+  --line-strong:   #34332e;
 
-  --text:          #e9ecf1;
-  --text-2:        #aeb6c4;
-  --muted:         #737d8d;
+  --text:          #edeae4;
+  --text-2:        #aeaaa2;
+  --muted:         #7e7a72;
 
-  --accent:        #e0865f;
-  --accent-ink:    #f0a184;
-  --accent-wash:   rgba(224, 134, 95, .13);
-  --info:          #7fa9f5;
-  --info-wash:     rgba(127, 169, 245, .13);
-  --good:          #63c78b;
-  --good-wash:     rgba(99, 199, 139, .12);
-  --bad:           #f0707c;
-  --bad-wash:      rgba(240, 112, 124, .12);
-  --warn:          #e6bd63;
-  --warn-wash:     rgba(230, 189, 99, .12);
+  --accent:        #6fc3ac;
+  --accent-ink:    #8ad4bf;
+  --accent-wash:   rgba(111, 195, 172, .12);
+  --good:          #6fc3ac;
+  --good-wash:     rgba(111, 195, 172, .12);
+  --bad:           #e2685f;
+  --bad-wash:      rgba(226, 104, 95, .12);
+  --warn:          #d6a05a;
+  --warn-wash:     rgba(214, 160, 90, .12);
+  /* Links share the accent rather than introducing a fifth hue. */
+  --info:          #6fc3ac;
+  --info-wash:     rgba(111, 195, 172, .12);
 
-  --neutral-bar:   #39424f;
-  --shadow:        0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
-  --row-hover:     rgba(255,255,255,.028);
+  /* Sequential ramp: the token chart shows one quantity split four ways,
+     so it steps through a single hue instead of four competing ones. */
+  --ramp-1:        #34342f;
+  --ramp-2:        #4c5a53;
+  --ramp-3:        #6d8b80;
+  --ramp-4:        #6fc3ac;
+
+  --neutral-bar:   #34342f;
+  --shadow:        none;
+  --row-hover:     rgba(255,255,255,.022);
 }
 
 :root[data-theme="light"] {
-  --bg:            #f6f7f9;
-  --bg-grad:       radial-gradient(1200px 600px at 78% -12%, #e8eef7 0%, transparent 62%);
+  --bg:            #f7f6f3;
+  --bg-grad:       none;
   --surface:       #ffffff;
-  --surface-2:     #f3f5f8;
-  --surface-3:     #e9edf2;
-  --line:          #e2e6ec;
-  --line-soft:     #edf0f4;
-  --line-strong:   #cfd6df;
+  --surface-2:     #f2f1ed;
+  --surface-3:     #e9e7e2;
+  --line:          #e5e3dd;
+  --line-soft:     #efede8;
+  --line-strong:   #cfccc4;
 
-  --text:          #171a1f;
-  --text-2:        #4a5361;
-  --muted:         #79828f;
+  --text:          #1c1b19;
+  --text-2:        #57544e;
+  --muted:         #85817a;
 
-  --accent:        #c2643d;
-  --accent-ink:    #a8532f;
-  --accent-wash:   rgba(194, 100, 61, .11);
-  --info:          #3b6fd4;
-  --info-wash:     rgba(59, 111, 212, .1);
-  --good:          #24905a;
-  --good-wash:     rgba(36, 144, 90, .11);
-  --bad:           #cf3d4c;
-  --bad-wash:      rgba(207, 61, 76, .1);
-  --warn:          #a8760d;
-  --warn-wash:     rgba(168, 118, 13, .12);
+  --accent:        #1f8f76;
+  --accent-ink:    #177a63;
+  --accent-wash:   rgba(31, 143, 118, .10);
+  --good:          #1f8f76;
+  --good-wash:     rgba(31, 143, 118, .10);
+  --bad:           #c4453c;
+  --bad-wash:      rgba(196, 69, 60, .10);
+  --warn:          #97701d;
+  --warn-wash:     rgba(151, 112, 29, .11);
+  --info:          #1f8f76;
+  --info-wash:     rgba(31, 143, 118, .10);
 
-  --neutral-bar:   #b7c0cc;
-  --shadow:        0 1px 2px rgba(16,24,40,.05), 0 8px 24px -14px rgba(16,24,40,.16);
-  --row-hover:     rgba(16,24,40,.028);
+  --ramp-1:        #d5d2ca;
+  --ramp-2:        #9fb3aa;
+  --ramp-3:        #5d998a;
+  --ramp-4:        #1f8f76;
+
+  --neutral-bar:   #c3bfb7;
+  --shadow:        none;
+  --row-hover:     rgba(28,27,25,.025);
 }
 
 :root {
@@ -180,7 +195,6 @@ h1, h2 { margin: 0; }
 
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 18px; }
 .foot-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ingest-status { color: var(--muted); font-size: 11px; min-height: 14px; line-height: 1.3; }
 
 /* --- topbar --------------------------------------------------------------- */
 
@@ -250,65 +264,70 @@ h1, h2 { margin: 0; }
 
 /* --- cards ---------------------------------------------------------------- */
 
+/* A metric strip, not a row of boxes. Values sit on the page background and are
+   separated by space and hairline dividers, so the numbers carry the weight
+   instead of five competing containers. */
+/* One raised surface holding all the metrics, divided internally. Reads as a
+   single instrument panel — present and legible — rather than five separate
+   boxes competing with each other. */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(186px, 1fr));
-  gap: 13px;
-  margin-bottom: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 0;
+  margin: 2px 0 20px;
+  padding: 22px 4px;
+  background: var(--surface);
+  border-radius: var(--radius);
 }
 .card {
-  position: relative;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 15px 17px 16px;
-  overflow: hidden;
-  transition: border-color .15s ease, transform .15s ease;
+  padding: 0 24px;
+  border-left: 1px solid var(--line);
+  min-width: 0;
 }
-.card::after {
-  content: ""; position: absolute; left: 0; top: 0; height: 2px; width: 100%;
-  background: linear-gradient(90deg, var(--accent), transparent 85%);
-  opacity: .55;
-}
-.card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
-.card:hover::after { opacity: .9; }
+.card:first-child { border-left: 0; }
 
 .card-label {
-  color: var(--muted); font-size: 10.5px; font-weight: 500;
-  text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text-2); font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em;
 }
 .card-value {
-  font-size: 27px; font-weight: 600; margin: 7px 0 3px;
-  letter-spacing: -.022em; font-variant-numeric: tabular-nums;
+  font-size: 30px; font-weight: 600; margin: 10px 0 6px;
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+  line-height: 1.05; color: var(--text);
 }
-.card-sub { color: var(--muted); font-size: 11.5px; }
-.card-warn { border-color: color-mix(in srgb, var(--bad) 42%, var(--line)); }
-.card-warn::after { background: linear-gradient(90deg, var(--bad), transparent 85%); opacity: .95; }
+/* The lead metric answers the page's first question, so it gets the size
+   and the accent — the one place colour is spent on the dashboard. */
+.cards .card:first-child .card-value { font-size: 40px; color: var(--accent); }
+.card-sub { color: var(--muted); font-size: 11.5px; line-height: 1.45; }
 .card-warn .card-value { color: var(--bad); }
 
 /* --- panels --------------------------------------------------------------- */
 
+/* No border, no shadow — a panel is a tonal step up from the page, and the
+   space between panels does the separating. */
 .panel {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: var(--radius);
-  padding: 16px 18px 18px;
-  margin-bottom: 16px;
+  padding: 20px 22px 22px;
+  margin-bottom: 20px;
   min-width: 0;
-  box-shadow: var(--shadow);
 }
 .panel-head {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+  gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
 }
-.panel-head h2 { font-size: 13.5px; font-weight: 600; letter-spacing: -.005em; }
+.panel-head h2 {
+  font-size: 11px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-2);
+}
 
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
-  gap: 16px;
+  gap: 20px;
   align-items: stretch;             /* equal heights — no ragged gap under the shorter panel */
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 .grid-2 > * { min-width: 0; }
 /* The row's own margin handles the spacing, so panels inside don't add their own. */
@@ -326,7 +345,11 @@ h1, h2 { margin: 0; }
 
 /* --- charts --------------------------------------------------------------- */
 
-.chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 18px; }
+.chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 26px; }
+.chart-title {
+  color: var(--muted); font-size: 11px; margin-bottom: 10px;
+  letter-spacing: .02em;
+}
 .chart-row > * { min-width: 0; }
 .chart-box { position: relative; height: 244px; min-width: 0; }
 .chart-box.tall { height: 322px; }
@@ -420,18 +443,8 @@ h1, h2 { margin: 0; }
   transition: background .13s ease, border-color .13s ease, opacity .13s ease;
 }
 .btn:hover { background: var(--surface-3); border-color: var(--line-strong); }
-.btn .icon { width: 13px; height: 13px; fill: currentColor; opacity: .8; }
-.btn-block { width: 100%; }
 .btn-ghost { background: transparent; }
-.btn-primary {
-  background: var(--accent-wash);
-  border-color: color-mix(in srgb, var(--accent) 38%, transparent);
-  color: var(--accent-ink);
-}
-.btn-primary:hover { background: color-mix(in srgb, var(--accent) 22%, transparent); }
 .btn:disabled { opacity: .55; cursor: default; }
-.btn.is-busy .icon { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -602,7 +615,6 @@ h1, h2 { margin: 0; }
   .sidebar-foot .btn { width: auto; }
   .foot-row { gap: 8px; }
   .billing-badge-side { flex: none; }
-  .ingest-status { display: none; }
   .content { padding: 16px 14px 48px; }
   .tl, .feed li { grid-template-columns: minmax(0, 1fr); gap: 5px; }
   .tl-badge, .tag { justify-self: start; }
