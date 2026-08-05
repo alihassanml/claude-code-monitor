@@ -265,10 +265,43 @@ Endpoints accept either kebab-case URLs or raw event names:
 | Env var | Default | Purpose |
 |---|---|---|
 | `CLAUDE_PROJECTS_DIR` | `~/.claude/projects` | Where transcripts are read from |
-| `CLAUDE_DASHBOARD_DB` | `./claude_dashboard.db` | SQLite file location |
+| `CLAUDE_DASHBOARD_DB` | `./claude_dashboard.db` | SQLite file location (the plugin overrides this to its data dir) |
+| `CLAUDE_MONITOR_PORT` | `8787` | Port the plugin serves on |
 
 The dashboard binds to localhost and **has no authentication** — it renders your full prompt
 text, so don't expose it on a shared interface without putting auth in front of it.
+
+## What this plugin does on your machine
+
+Claude Code plugins run with your user privileges, so here is the complete list of what this
+one does — no network calls to anywhere except PyPI, and no data leaves your machine.
+
+**On session start**, `scripts/ensure-running.sh` runs and:
+
+1. Checks `http://127.0.0.1:8787/api/health`. If this app answers, it exits immediately.
+2. Otherwise, in a detached background process: creates a Python virtualenv under
+   `~/.claude/plugins/data/…`, `pip install`s the four packages in
+   [`requirements.txt`](requirements.txt) **from PyPI**, reads your Claude Code transcripts
+   into a local SQLite file, and starts a `uvicorn` server bound to `127.0.0.1`.
+
+**During a session**, the HTTP hooks POST each tool-use event to that local server so the
+Live activity feed updates.
+
+**What it reads:** `~/.claude/projects/**/*.jsonl` (your transcripts, including prompt text),
+`~/.claude.json` and `~/.claude/settings.json` (billing mode), and your shell profiles —
+grepped **only** for the *presence* of `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` on a line.
+
+**What it never does:** read or transmit any credential value (only presence is recorded, and
+the macOS keychain probe omits `-g` so it can't read the secret and won't prompt), send
+telemetry, phone home, or bind to anything but `127.0.0.1`.
+
+**What it writes:** everything stays in `~/.claude/plugins/data/…` — the virtualenv, the
+SQLite database, and `server.log`. Nothing is written into your projects. `claude-monitor where`
+prints the exact paths, and uninstalling the plugin offers to delete the whole data directory.
+
+To audit it yourself, the entire surface is two files:
+[`scripts/ensure-running.sh`](scripts/ensure-running.sh) and
+[`auth_mode.py`](auth_mode.py).
 
 ## FAQ
 
@@ -382,8 +415,7 @@ if you're adding a feature, keeping it to stdlib + the existing four packages is
 
 ## License
 
-No license file yet. Add one (MIT is the usual choice for a tool like this) before publishing
-the repository, or the default is "all rights reserved" and nobody can legally reuse it.
+[MIT](LICENSE) — use it, fork it, ship it.
 
 ---
 

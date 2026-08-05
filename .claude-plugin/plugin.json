@@ -9,6 +9,7 @@
   },
   "homepage": "https://github.com/alihassanml/claude-code-monitor",
   "repository": "https://github.com/alihassanml/claude-code-monitor",
+  "license": "MIT",
   "keywords": [
     "usage",
     "cost",
