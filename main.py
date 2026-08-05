@@ -25,7 +25,7 @@ import pricing
 BASE_DIR = Path(__file__).parent
 
 APP_ID = "claude-code-monitor"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 
 app = FastAPI(title="Claude Code Observability Dashboard", version=APP_VERSION)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
