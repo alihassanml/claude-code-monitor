@@ -17,6 +17,5 @@
     "observability",
     "dashboard",
     "monitoring"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }
