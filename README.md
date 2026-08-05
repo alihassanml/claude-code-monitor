@@ -1,6 +1,6 @@
 <div align="center">
 
-# Claude Code Dashboard — Token Usage, Cost & Analytics Monitor
+# Claude Code Dashboard Token Usage, Cost & Analytics Monitor
 
 **A self-hosted observability dashboard for [Claude Code](https://claude.com/claude-code).**
 Track token usage, API cost, prompts, sessions, tool calls and failures — parsed directly
