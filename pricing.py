@@ -22,8 +22,10 @@ CACHE_WRITE_1H_MULTIPLIER = 2.00
 
 # model id -> (input $/MTok, output $/MTok)
 PRICING: dict[str, tuple[float, float]] = {
+    "claude-fable-5-1": (10.00, 50.00),
     "claude-fable-5": (10.00, 50.00),
     "claude-mythos-5": (10.00, 50.00),
+    "claude-opus-5-5": (4.00, 20.00),
     "claude-opus-5": (5.00, 25.00),
     "claude-opus-4-8": (5.00, 25.00),
     "claude-opus-4-7": (5.00, 25.00),
@@ -31,10 +33,12 @@ PRICING: dict[str, tuple[float, float]] = {
     "claude-opus-4-5": (5.00, 25.00),
     "claude-opus-4-1": (15.00, 75.00),
     "claude-opus-4-0": (15.00, 75.00),
-    "claude-sonnet-5": (3.00, 15.00),
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-sonnet-5": (2.00, 10.00),
     "claude-sonnet-4-6": (3.00, 15.00),
     "claude-sonnet-4-5": (3.00, 15.00),
     "claude-sonnet-4-0": (3.00, 15.00),
+    "claude-haiku-5-5": (0.10, 0.50),  # prompts up to 100K tokens
     "claude-haiku-4-5": (1.00, 5.00),
     "claude-3-5-haiku": (0.80, 4.00),
     "claude-3-haiku": (0.25, 1.25),
@@ -42,8 +46,15 @@ PRICING: dict[str, tuple[float, float]] = {
 
 # Models billed at a premium when Claude Code runs them in fast mode.
 FAST_MODE_PRICING: dict[str, tuple[float, float]] = {
+    "claude-opus-5-5": (8.00, 40.00),
     "claude-opus-5": (10.00, 50.00),
     "claude-opus-4-8": (10.00, 50.00),
+}
+
+# Cache-read $/MTok where it is not the 0.1x input multiplier.
+CACHE_READ_RATES: dict[str, float] = {
+    "claude-opus-5-5": 0.20,
+    "claude-fable-5-1": 0.25,
 }
 
 DEFAULT_RATES = (3.00, 15.00)  # unknown model -> assume Sonnet-tier
@@ -78,6 +89,10 @@ def unknown_models() -> list[str]:
     return sorted(_UNKNOWN_MODELS)
 
 
+def cache_read_rate(model: str | None, in_rate: float) -> float:
+    return CACHE_READ_RATES.get(normalize_model(model), in_rate * CACHE_READ_MULTIPLIER)
+
+
 def cost_usd(
     model: str | None,
     input_tokens: int = 0,
@@ -102,7 +117,7 @@ def cost_usd(
     total = (
         input_tokens * in_rate
         + output_tokens * out_rate
-        + cache_read_tokens * in_rate * CACHE_READ_MULTIPLIER
+        + cache_read_tokens * cache_read_rate(model, in_rate)
         + write_cost
     )
     return total / 1_000_000.0
@@ -117,7 +132,7 @@ def pricing_table() -> list[dict]:
                 "model": model,
                 "input": inp,
                 "output": out,
-                "cache_read": round(inp * CACHE_READ_MULTIPLIER, 4),
+                "cache_read": round(cache_read_rate(model, inp), 4),
                 "cache_write_5m": round(inp * CACHE_WRITE_5M_MULTIPLIER, 4),
                 "cache_write_1h": round(inp * CACHE_WRITE_1H_MULTIPLIER, 4),
             }
